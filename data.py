@@ -1,7 +1,7 @@
 import torch
 from torchvision import datasets, transforms
 import numpy as np
-
+import math
 class ImageSequence(datasets.MNIST):
     def __init__(self, root, seq_len, batch_size, train=True,
                  transform=None, target_transform=None,
@@ -89,7 +89,7 @@ def create_matrix(slidingWindow):
 
 def gen_result(time_matrix, labels, slidingWindow):
     res = torch.mm(time_matrix, labels.resize(slidingWindow,1).double())    
-    res[0] = res[0]/50
+    # res[0] = math.atan(res[0])/(math.pi/2)
     return res
 
 def gen_label(slidingWindow, batch_size, reset=False):
@@ -104,6 +104,12 @@ def gen_label(slidingWindow, batch_size, reset=False):
                 result = result.float()
                 perior_result = torch.cat((perior_result,result.view(1,1)))
         labels = perior_result.detach().numpy()
+        max = labels.max()
+        min = labels.min()
+        for i in range(len(labels)):
+            labels[i] = (labels[i]-min)/(max-min)
+        print("mean",np.mean(labels))
+        print("var",np.var(labels))
         np.savetxt('./train_labels.csv', labels, fmt='%f')
 
         perior_result = torch.zeros([0,1])
@@ -113,6 +119,11 @@ def gen_label(slidingWindow, batch_size, reset=False):
                 result = result.float()
                 perior_result = torch.cat((perior_result,result.view(1,1)))
         labels = perior_result.detach().numpy()
+        max = labels.max()
+        min = labels.min()
+        for i in range(len(labels)):
+            labels[i] = (labels[i]-min)/(max-min)
+        print(labels.shape)
         np.savetxt('./test_labels.csv', labels, fmt='%f')
 
 def load_label(train):
