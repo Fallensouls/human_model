@@ -82,8 +82,10 @@ def get_raw_data(batch_size):
 
     return train_loader, test_loader
 
-def create_matrix(slidingWindow):  
+def create_matrix(slidingWindow,delay):  
     mat = np.random.rand(slidingWindow)
+    # mat[-delay:] = 0
+    print(mat)
     time_matrix = torch.from_numpy(mat.reshape(1, slidingWindow))
     return time_matrix
 
@@ -92,9 +94,9 @@ def gen_result(time_matrix, labels, slidingWindow):
     # res[0] = math.atan(res[0])/(math.pi/2)
     return res
 
-def gen_label(slidingWindow, batch_size, reset=False):
+def gen_label(delay,slidingWindow, batch_size, reset=False):
     if reset:
-        matrix = create_matrix(slidingWindow)
+        matrix = create_matrix(slidingWindow,delay)
 
         train_loader, test_loader = get_raw_data(batch_size)
         perior_result = torch.zeros([0,1])
