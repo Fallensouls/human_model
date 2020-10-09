@@ -17,14 +17,16 @@ class ImageSequence(datasets.MNIST):
 
     def __getitem__(self, index):
         x = np.array(self.data[index])
-        batch_index = index // self.batch_size
-        if index % self.batch_size == 0:
-            index = batch_index * (self.batch_size - self.seq_len)
-        else:
-            index = batch_index * (self.batch_size - self.seq_len) + (index % self.batch_size) - self.seq_len
-        if index > len(self.labels) or index == len(self.labels):
-            index = 0
+        # batch_index = index // self.batch_size
+        # if index % self.batch_size == 0:
+        #     index = batch_index * (self.batch_size - self.seq_len)
+        # else:
+        #     index = batch_index * (self.batch_size - self.seq_len) + (index % self.batch_size) - self.seq_len
+        # if index > len(self.labels) or index == len(self.labels):
+        #     index = 0
+        index = index + 1 - self.seq_len
         index = index - self.delay
+        index = index % len(self.labels)
         return self.transform(x), self.labels[index]
     
     def __len__(self):
@@ -102,11 +104,25 @@ def gen_label(slidingWindow, batch_size, reset=False):
 
         train_loader, test_loader = get_raw_data(batch_size)
         perior_result = torch.zeros([0,1])
+        targets = torch.zeros([slidingWindow, 1])
         for batch_index, (_, labels) in enumerate(train_loader):
-            for i in range(len(labels)-slidingWindow):
-                result = gen_result(matrix, labels[i:i+slidingWindow], slidingWindow)
-                result = result.float()
-                perior_result = torch.cat((perior_result,result.view(1,1)))
+            if batch_index == 0:
+                targets = labels[0:slidingWindow]
+                for i in range(len(labels)-slidingWindow):
+                    if i == 0:
+                        continue
+                    targets[:slidingWindow-1] = targets[1:slidingWindow].clone()
+                    targets[-1] = labels[i+slidingWindow-1]
+                    result = gen_result(matrix, targets, slidingWindow)
+                    result = result.float()
+                    perior_result = torch.cat((perior_result,result.view(1,1)))
+            else:
+                for i in range(len(labels)):
+                    targets[:slidingWindow-1] = targets[1:slidingWindow].clone()
+                    targets[-1] = labels[i]
+                    result = gen_result(matrix, targets, slidingWindow)
+                    result = result.float()
+                    perior_result = torch.cat((perior_result,result.view(1,1)))
         labels = perior_result.detach().numpy()
         max = labels.max()
         min = labels.min()
@@ -117,11 +133,25 @@ def gen_label(slidingWindow, batch_size, reset=False):
         np.savetxt('./train_labels.csv', labels, fmt='%f')
 
         perior_result = torch.zeros([0,1])
+        targets = torch.zeros([slidingWindow, 1])
         for batch_index, (_, labels) in enumerate(test_loader):
-            for i in range(len(labels)-slidingWindow):
-                result = gen_result(matrix, labels[i:i+slidingWindow], slidingWindow)
-                result = result.float()
-                perior_result = torch.cat((perior_result,result.view(1,1)))
+            if batch_index == 0:
+                targets = labels[0:slidingWindow]
+                for i in range(len(labels)-slidingWindow):
+                    if i == 0:
+                        continue
+                    targets[:slidingWindow-1] = targets[1:slidingWindow].clone()
+                    targets[-1] = labels[i+slidingWindow-1]
+                    result = gen_result(matrix, targets, slidingWindow)
+                    result = result.float()
+                    perior_result = torch.cat((perior_result,result.view(1,1)))
+            else:
+                for i in range(len(labels)):
+                    targets[:slidingWindow-1] = targets[1:slidingWindow].clone()
+                    targets[-1] = labels[i]
+                    result = gen_result(matrix, targets, slidingWindow)
+                    result = result.float()
+                    perior_result = torch.cat((perior_result,result.view(1,1)))
         labels = perior_result.detach().numpy()
         max = labels.max()
         min = labels.min()
@@ -138,3 +168,4 @@ def load_label(train):
 
 
 
+# gen_label(50, 256, True)
