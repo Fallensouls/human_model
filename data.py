@@ -1,9 +1,9 @@
 import torch
 from torchvision import datasets, transforms
 import numpy as np
-import math
+
 class ImageSequence(datasets.MNIST):
-    def __init__(self, root, seq_len, batch_size, train=True,
+    def __init__(self, root, seq_len, batch_size, delay, train=True,
                  transform=None, target_transform=None,
                  download=True):
         super().__init__(root, train=train,
@@ -12,6 +12,7 @@ class ImageSequence(datasets.MNIST):
                          download=download)
         self.seq_len = seq_len
         self.batch_size = batch_size
+        self.delay = delay
         self.labels = load_label(train)
 
     def __getitem__(self, index):
@@ -23,13 +24,14 @@ class ImageSequence(datasets.MNIST):
             index = batch_index * (self.batch_size - self.seq_len) + (index % self.batch_size) - self.seq_len
         if index > len(self.labels) or index == len(self.labels):
             index = 0
+        index = index - self.delay
         return self.transform(x), self.labels[index]
     
     def __len__(self):
         return len(self.data)
 
 
-def get_data(slidingWindow, batch_size):
+def get_data(slidingWindow, batch_size, delay):
     transform = transforms.Compose([transforms.ToTensor(),
                                 transforms.Lambda(lambda x: x.repeat(3,1,1)),
                                 transforms.Normalize(mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5])])
@@ -37,6 +39,7 @@ def get_data(slidingWindow, batch_size):
     data_train = ImageSequence(root = "../data/",
                                 seq_len=slidingWindow,
                                 batch_size = batch_size,
+                                delay=delay,
                                 transform=transform,
                                 train = True,
                                 download = True)
@@ -44,6 +47,7 @@ def get_data(slidingWindow, batch_size):
     data_test = ImageSequence(root="../data/",
                             seq_len=slidingWindow,
                             batch_size = batch_size,
+                            delay=delay,
                             transform = transform,
                             train = False)
 
@@ -82,21 +86,19 @@ def get_raw_data(batch_size):
 
     return train_loader, test_loader
 
-def create_matrix(slidingWindow,delay):  
+def create_matrix(slidingWindow):  
     mat = np.random.rand(slidingWindow)
-    # mat[-delay:] = 0
     print(mat)
     time_matrix = torch.from_numpy(mat.reshape(1, slidingWindow))
     return time_matrix
 
 def gen_result(time_matrix, labels, slidingWindow):
     res = torch.mm(time_matrix, labels.resize(slidingWindow,1).double())    
-    # res[0] = math.atan(res[0])/(math.pi/2)
     return res
 
-def gen_label(delay,slidingWindow, batch_size, reset=False):
+def gen_label(slidingWindow, batch_size, reset=False):
     if reset:
-        matrix = create_matrix(slidingWindow,delay)
+        matrix = create_matrix(slidingWindow)
 
         train_loader, test_loader = get_raw_data(batch_size)
         perior_result = torch.zeros([0,1])
@@ -125,7 +127,6 @@ def gen_label(delay,slidingWindow, batch_size, reset=False):
         min = labels.min()
         for i in range(len(labels)):
             labels[i] = (labels[i]-min)/(max-min)
-        print(labels.shape)
         np.savetxt('./test_labels.csv', labels, fmt='%f')
 
 def load_label(train):
