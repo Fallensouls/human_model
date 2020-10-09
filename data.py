@@ -17,13 +17,6 @@ class ImageSequence(datasets.MNIST):
 
     def __getitem__(self, index):
         x = np.array(self.data[index])
-        # batch_index = index // self.batch_size
-        # if index % self.batch_size == 0:
-        #     index = batch_index * (self.batch_size - self.seq_len)
-        # else:
-        #     index = batch_index * (self.batch_size - self.seq_len) + (index % self.batch_size) - self.seq_len
-        # if index > len(self.labels) or index == len(self.labels):
-        #     index = 0
         index = index + 1 - self.seq_len
         index = index - self.delay
         index = index % len(self.labels)
