@@ -18,9 +18,9 @@ class ImageSequence(datasets.MNIST):
 
     def __getitem__(self, index):
         x = np.array(self.data[index])
-        index = index + 1 - self.seq_len
-        index = index - self.delay
-        index = index % len(self.labels)
+        # index = index + 1 - self.seq_len
+        # index = index - self.delay
+        # index = index % len(self.labels)
         return self.transform(x), self.labels[index]
     
     def __len__(self):
@@ -114,21 +114,21 @@ class Matrix:
     def __init__(self,n,m):     #n是状态空间维度，m是输出维度
         self.A = torch.randn(n,n)/n
         self.B = torch.randn(n,1)/n
-        self.A = torch.ones(n,n)/n
-        self.B = torch.ones(n,1)/n
-        self.C = torch.ones(m,n)
-        self.D = torch.ones(m,1)
-        self.x = torch.zeros(n,1)
-        self.i = 0
+        self.C = torch.randn(m,n)
+        self.D = torch.randn(m,1)
+        self.x = torch.randn(n,1)
+        self.x0 = self.x
 
     def iter(self,u):
-        u = u.float()
-        u-=5
+        u = u.float()/10
+        # u-=5
         u = u.view(1,1)
-        y = torch.mm(self.C,self.x) + torch.mm(self.D,u)          #y(t) = Cx(t) + Du(t)
+        y = torch.mm(self.C,self.x) + torch.mm(self.D,u)         #y(t) = Cx(t) + Du(t)
         self.x = torch.mm(self.A,self.x) + torch.mm(self.B,u)    #x(t+1) = Ax(t) + Bu(t)
         return y
 
+    def reset(self):
+        self.x = self.x0
 
 def create_matrix(slidingWindow):  
     mat = np.random.rand(slidingWindow)
@@ -146,8 +146,37 @@ def gen_label(n,m,batch_size,reset = False):
             for i in range(len(labels)):
                 y = matrix.iter(labels[i])
                 result = torch.cat((result,y))
-        return result
 
+        labels = result.detach().numpy()
+        # max = labels.max()
+        # min = labels.min()
+        # for i in range(len(labels)):
+            # labels[i] = (labels[i]-min)/(max-min)
+        mean = np.mean(labels)
+        std = np.std(labels)
+        labels = (labels - mean) / std
+        print("mean",mean)
+        print("std",std)
+        np.savetxt('./new_train_labels.csv', labels, fmt='%f')
+
+        matrix.reset()
+        result = torch.zeros([0,m])
+        for batch_index, (_, labels) in enumerate(test_loader):
+            for i in range(len(labels)):
+                y = matrix.iter(labels[i])
+                result = torch.cat((result,y))
+        labels = result.detach().numpy()
+        # max = labels.max()
+        # min = labels.min()
+        # for i in range(len(labels)):
+            # labels[i] = (labels[i]-min)/(max-min)
+        mean = np.mean(labels)
+        std = np.std(labels)
+        labels = (labels - mean) / std
+        print("mean",mean)
+        print("std",std)
+        np.savetxt('./new_test_labels.csv', labels, fmt='%f')
+        # return labels
 
 
 def gen_result(time_matrix, labels, slidingWindow):
@@ -216,11 +245,9 @@ def gen_result(time_matrix, labels, slidingWindow):
 
 def load_label(train):
     if train:
-        labels = np.loadtxt('./train_labels.csv')
+        labels = np.loadtxt('./new_train_labels.csv')
     else:
-        labels = np.loadtxt('./test_labels.csv')
+        labels = np.loadtxt('./new_test_labels.csv')
     return labels
 
-
-y = gen_label(20,1,256,True)
 # gen_label(50, 256, True)
