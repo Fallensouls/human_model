@@ -23,6 +23,8 @@ class ImageSequence(datasets.MNIST):
         # index = index - self.delay
         # index = index % len(self.labels)
         index = index - self.delay
+        if index < 0:
+            return self.transform(x), 0
         return self.transform(x), self.labels[index]
     
     def __len__(self):
