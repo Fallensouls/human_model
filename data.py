@@ -2,6 +2,7 @@ import torch
 from torchvision import datasets, transforms
 import numpy as np
 from PIL import Image
+import sys
 
 class ImageSequence(datasets.MNIST):
     def __init__(self, root, seq_len, batch_size, delay, train=True,
@@ -116,7 +117,7 @@ class Matrix:
         self.B = torch.randn(n,1)/n
         self.C = torch.randn(m,n)
         self.D = torch.randn(m,1)
-        self.x = torch.randn(n,1)
+        self.x = torch.randn(n,1)/10
         self.x0 = self.x
 
     def iter(self,u):
@@ -146,7 +147,6 @@ def gen_label(n,m,batch_size,reset = False):
             for i in range(len(labels)):
                 y = matrix.iter(labels[i])
                 result = torch.cat((result,y))
-
         labels = result.detach().numpy()
         # max = labels.max()
         # min = labels.min()
@@ -250,4 +250,4 @@ def load_label(train):
         labels = np.loadtxt('./new_test_labels.csv')
     return labels
 
-# gen_label(50, 256, True)
+gen_label(50,1, 256, True)
