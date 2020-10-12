@@ -22,6 +22,7 @@ class ImageSequence(datasets.MNIST):
         # index = index + 1 - self.seq_len
         # index = index - self.delay
         # index = index % len(self.labels)
+        index = index - self.delay
         return self.transform(x), self.labels[index]
     
     def __len__(self):
@@ -117,7 +118,8 @@ class Matrix:
         self.B = torch.randn(n,1)/n
         self.C = torch.randn(m,n)
         self.D = torch.randn(m,1)
-        self.x = torch.randn(n,1)/10
+        # self.x = torch.randn(n,1)/10
+        self.x = torch.zeros(n,1)
         self.x0 = self.x
 
     def iter(self,u):
@@ -250,4 +252,4 @@ def load_label(train):
         labels = np.loadtxt('./new_test_labels.csv')
     return labels
 
-gen_label(50,1, 256, True)
+# gen_label(50,1, 256, True)
