@@ -2,7 +2,6 @@ import torch
 from torchvision import datasets, transforms
 import numpy as np
 from PIL import Image
-import sys
 
 class ImageSequence(datasets.MNIST):
     def __init__(self, root, seq_len, batch_size, delay, train=True,
